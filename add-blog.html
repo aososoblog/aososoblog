@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>管理画面</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .admin-container {
+            max-width: 800px;
+            margin: 20px auto;
+        }
+        .form-control {
+            margin-bottom: 15px;
+        }
+        .admin-header {
+            margin-bottom: 30px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="admin-container">
+        <h1 class="admin-header">管理画面</h1>
+        <form id="post-form">
+            <div class="mb-3">
+                <label for="title" class="form-label">タイトル</label>
+                <input type="text" id="title" class="form-control" placeholder="タイトルを入力">
+            </div>
+            <div class="mb-3">
+                <label for="body" class="form-label">本文</label>
+                <textarea id="body" class="form-control" rows="4" placeholder="本文を入力"></textarea>
+            </div>
+            <div class="mb-3">
+                <label for="image-url" class="form-label">画像リンク</label>
+                <input type="url" id="image-url" class="form-control" placeholder="画像URLを入力">
+            </div>
+            <div class="mb-3">
+                <label for="title-image-url" class="form-label">タイトル画像リンク (任意)</label>
+                <input type="url" id="title-image-url" class="form-control" placeholder="タイトル画像URLを入力">
+            </div>
+            <div class="mb-3">
+                <label for="tags" class="form-label">タグ</label>
+                <input type="text" id="tags" class="form-control" placeholder="タグをカンマ区切りで入力">
+            </div>
+            <button type="button" id="post-button" class="btn btn-primary">投稿</button>
+        </form>
+        <hr>
+        <h2>投稿一覧</h2>
+        <div id="post-list" class="mt-3">
+            <!-- 投稿リストがここに表示されます -->
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.16.0/firebase-app.js';
+        import { getDatabase, ref, push, onValue, remove } from 'https://www.gstatic.com/firebasejs/9.16.0/firebase-database.js';
+
+        // Firebase 初期化
+        const firebaseConfig = {
+          apiKey: "YOUR_API_KEY",
+          authDomain: "YOUR_AUTH_DOMAIN",
+          databaseURL: "YOUR_DATABASE_URL",
+          projectId: "YOUR_PROJECT_ID",
+          storageBucket: "YOUR_STORAGE_BUCKET",
+          messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+          appId: "YOUR_APP_ID"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const database = getDatabase(app);
+
+        document.getElementById('post-button').addEventListener('click', async () => {
+            try {
+                const title = document.getElementById('title').value;
+                const body = document.getElementById('body').value;
+                const imageUrl = document.getElementById('image-url').value;
+                const titleImageUrl = document.getElementById('title-image-url').value;
+                const tags = document.getElementById('tags').value;
+                const timestamp = new Date().toISOString();
+
+                const postData = {
+                    title,
+                    body,
+                    imageUrl,
+                    titleImageUrl,
+                    tags,
+                    timestamp
+                };
+
+                const postsRef = ref(database, 'posts');
+                await push(postsRef, postData);
+                alert('投稿が成功しました！');
+                document.getElementById('post-form').reset();
+            } catch (error) {
+                console.error('投稿エラー:', error);
+                alert('投稿に失敗しました。エラーを確認してください。');
+            }
+        });
+
+        function loadPosts() {
+            const postList = document.getElementById('post-list');
+            const postsRef = ref(database, 'posts');
+            onValue(postsRef, snapshot => {
+                postList.innerHTML = '';
+                snapshot.forEach(postSnapshot => {
+                    const post = postSnapshot.val();
+                    const postDiv = document.createElement('div');
+                    postDiv.classList.add('card', 'mb-3');
+                    postDiv.innerHTML = `
+                        <div class="card-body">
+                            <h5 class="card-title">${post.title}</h5>
+                            <p class="card-text">${post.body}</p>
+                            <img src="${post.imageUrl}" alt="Post Image" class="img-fluid mb-3">
+                            <p class="text-muted">投稿日時: ${new Date(post.timestamp).toLocaleString()}</p>
+                            <button class="btn btn-danger btn-sm" onclick="deletePost('${postSnapshot.key}')">削除</button>
+                        </div>
+                    `;
+                    postList.appendChild(postDiv);
+                });
+            });
+        }
+
+        window.deletePost = async function(postId) {
+            if (confirm('本当に削除しますか？')) {
+                try {
+                    const postRef = ref(database, `posts/${postId}`);
+                    await remove(postRef);
+                    alert('削除が成功しました！');
+                } catch (error) {
+                    console.error('削除エラー:', error);
+                    alert('削除に失敗しました。エラーを確認してください。');
+                }
+            }
+        };
+
+        // ページロード時に投稿を読み込み
+        loadPosts();
+    </script>
+</body>
+</html>
