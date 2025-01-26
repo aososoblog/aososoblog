@@ -60,44 +60,43 @@
 
         // Firebase 初期化
         const firebaseConfig = {
-          apiKey: "YOUR_API_KEY",
-          authDomain: "YOUR_AUTH_DOMAIN",
-          databaseURL: "YOUR_DATABASE_URL",
-          projectId: "YOUR_PROJECT_ID",
-          storageBucket: "YOUR_STORAGE_BUCKET",
-          messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-          appId: "YOUR_APP_ID"
+          apiKey: "AIzaSyCY0gTY8HdvhH7ddYsqr7AudE3BFlIyenQ",
+          authDomain: "aososo-blog.firebaseapp.com",
+          databaseURL: "https://aososo-blog-default-rtdb.asia-southeast1.firebasedatabase.app",
+          projectId: "aososo-blog",
+          storageBucket: "aososo-blog.appspot.com",
+          messagingSenderId: "473316603302",
+          appId: "1:473316603302:web:b562b4c72e029f303a4b67",
+          measurementId: "G-GEB1NXSTQ6"
         };
 
         const app = initializeApp(firebaseConfig);
         const database = getDatabase(app);
 
-        document.getElementById('post-button').addEventListener('click', async () => {
-            try {
-                const title = document.getElementById('title').value;
-                const body = document.getElementById('body').value;
-                const imageUrl = document.getElementById('image-url').value;
-                const titleImageUrl = document.getElementById('title-image-url').value;
-                const tags = document.getElementById('tags').value;
-                const timestamp = new Date().toISOString();
+        document.getElementById('post-button').addEventListener('click', () => {
+            const title = document.getElementById('title').value;
+            const body = document.getElementById('body').value;
+            const imageUrl = document.getElementById('image-url').value;
+            const titleImageUrl = document.getElementById('title-image-url').value;
+            const tags = document.getElementById('tags').value;
+            const timestamp = new Date().toISOString();
 
-                const postData = {
-                    title,
-                    body,
-                    imageUrl,
-                    titleImageUrl,
-                    tags,
-                    timestamp
-                };
+            const postData = {
+                title,
+                body,
+                imageUrl,
+                titleImageUrl,
+                tags,
+                timestamp
+            };
 
-                const postsRef = ref(database, 'posts');
-                await push(postsRef, postData);
+            const postsRef = ref(database, 'posts');
+            push(postsRef, postData).then(() => {
                 alert('投稿が成功しました！');
                 document.getElementById('post-form').reset();
-            } catch (error) {
+            }).catch(error => {
                 console.error('投稿エラー:', error);
-                alert('投稿に失敗しました。エラーを確認してください。');
-            }
+            });
         });
 
         function loadPosts() {
@@ -123,16 +122,14 @@
             });
         }
 
-        window.deletePost = async function(postId) {
+        window.deletePost = function(postId) {
             if (confirm('本当に削除しますか？')) {
-                try {
-                    const postRef = ref(database, `posts/${postId}`);
-                    await remove(postRef);
+                const postRef = ref(database, `posts/${postId}`);
+                remove(postRef).then(() => {
                     alert('削除が成功しました！');
-                } catch (error) {
+                }).catch(error => {
                     console.error('削除エラー:', error);
-                    alert('削除に失敗しました。エラーを確認してください。');
-                }
+                });
             }
         };
 
