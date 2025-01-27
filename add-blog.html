@@ -155,6 +155,8 @@
         };
 
         onAuthStateChanged(auth, user => {
+
+            console.log(user)
             const loginButton = document.getElementById('login-button');
             const logoutButton = document.getElementById('logout-button');
             const postForm = document.getElementById('post-form');
