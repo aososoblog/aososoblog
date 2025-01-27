@@ -67,7 +67,7 @@
     <script type="module">
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.16.0/firebase-app.js';
         import { getDatabase, ref, push, onValue, remove } from 'https://www.gstatic.com/firebasejs/9.16.0/firebase-database.js';
-        import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/9.16.0/firebase-auth.js';
+        import { getAuth, signInWithRedirect, GoogleAuthProvider, signOut, onAuthStateChanged, getRedirectResult } from 'https://www.gstatic.com/firebasejs/9.16.0/firebase-auth.js';
 
         // Firebase 初期化
         const firebaseConfig = {
@@ -87,7 +87,7 @@
         const database = getDatabase(app);
 
         document.getElementById('login-button').addEventListener('click', () => {
-            signInWithPopup(auth, provider).catch(error => alert('ログインエラー: ' + error.message));
+            signInWithRedirect(auth, provider).catch(error => alert('ログインエラー: ' + error.message));
         });
 
         document.getElementById('logout-button').addEventListener('click', () => {
@@ -179,6 +179,9 @@
             }
         });
 
+        getRedirectResult(auth).catch(error => {
+            console.error('リダイレクト結果の取得エラー:', error);
+        });
     </script>
 </body>
 </html>
