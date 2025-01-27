@@ -21,9 +21,12 @@
     </style>
 </head>
 <body>
+    <button id="login-button" class="btn btn-primary mb-3">Googleでログイン</button>
+    <button id="logout-button" class="btn btn-secondary mb-3 d-none">ログアウト</button>
+
     <div class="admin-container">
         <h1 class="admin-header">管理画面</h1>
-        <form id="post-form">
+        <form id="post-form" class="d-none">
             <div class="mb-3">
                 <label for="title" class="form-label">タイトル</label>
                 <input type="text" id="title" class="form-control" placeholder="タイトルを入力">
@@ -57,6 +60,7 @@
     <script type="module">
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.16.0/firebase-app.js';
         import { getDatabase, ref, push, onValue, remove } from 'https://www.gstatic.com/firebasejs/9.16.0/firebase-database.js';
+        import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/9.16.0/firebase-auth.js';
 
         // Firebase 初期化
         const firebaseConfig = {
@@ -71,7 +75,17 @@
         };
 
         const app = initializeApp(firebaseConfig);
+        const auth = getAuth();
+        const provider = new GoogleAuthProvider();
         const database = getDatabase(app);
+
+        document.getElementById('login-button').addEventListener('click', () => {
+            signInWithPopup(auth, provider).catch(error => console.error('ログインエラー:', error));
+        });
+
+        document.getElementById('logout-button').addEventListener('click', () => {
+            signOut(auth).catch(error => console.error('ログアウトエラー:', error));
+        });
 
         document.getElementById('post-button').addEventListener('click', () => {
             const title = document.getElementById('title').value;
@@ -133,8 +147,25 @@
             }
         };
 
-        // ページロード時に投稿を読み込み
-        loadPosts();
+        onAuthStateChanged(auth, user => {
+            const loginButton = document.getElementById('login-button');
+            const logoutButton = document.getElementById('logout-button');
+            const postForm = document.getElementById('post-form');
+            const postList = document.getElementById('post-list');
+
+            if (user) {
+                loginButton.classList.add('d-none');
+                logoutButton.classList.remove('d-none');
+                postForm.classList.remove('d-none');
+                loadPosts();
+            } else {
+                loginButton.classList.remove('d-none');
+                logoutButton.classList.add('d-none');
+                postForm.classList.add('d-none');
+                postList.innerHTML = '<p>ログインしてください。</p>';
+            }
+        });
+
     </script>
 </body>
 </html>
