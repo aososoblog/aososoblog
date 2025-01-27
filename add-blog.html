@@ -18,11 +18,18 @@
             margin-bottom: 30px;
             text-align: center;
         }
+        #user-info {
+            margin-bottom: 15px;
+        }
     </style>
 </head>
 <body>
     <button id="login-button" class="btn btn-primary mb-3">Googleでログイン</button>
     <button id="logout-button" class="btn btn-secondary mb-3 d-none">ログアウト</button>
+
+    <div id="user-info" class="text-center d-none">
+        <p><strong>ログイン中:</strong> <span id="user-name"></span></p>
+    </div>
 
     <div class="admin-container">
         <h1 class="admin-header">管理画面</h1>
@@ -80,11 +87,11 @@
         const database = getDatabase(app);
 
         document.getElementById('login-button').addEventListener('click', () => {
-            signInWithPopup(auth, provider).catch(error => console.error('ログインエラー:', error));
+            signInWithPopup(auth, provider).catch(error => alert('ログインエラー: ' + error.message));
         });
 
         document.getElementById('logout-button').addEventListener('click', () => {
-            signOut(auth).catch(error => console.error('ログアウトエラー:', error));
+            signOut(auth).catch(error => alert('ログアウトエラー: ' + error.message));
         });
 
         document.getElementById('post-button').addEventListener('click', () => {
@@ -109,7 +116,7 @@
                 alert('投稿が成功しました！');
                 document.getElementById('post-form').reset();
             }).catch(error => {
-                console.error('投稿エラー:', error);
+                alert('投稿エラー: ' + error.message);
             });
         });
 
@@ -142,7 +149,7 @@
                 remove(postRef).then(() => {
                     alert('削除が成功しました！');
                 }).catch(error => {
-                    console.error('削除エラー:', error);
+                    alert('削除エラー: ' + error.message);
                 });
             }
         };
@@ -152,16 +159,22 @@
             const logoutButton = document.getElementById('logout-button');
             const postForm = document.getElementById('post-form');
             const postList = document.getElementById('post-list');
+            const userInfo = document.getElementById('user-info');
+            const userName = document.getElementById('user-name');
 
             if (user) {
                 loginButton.classList.add('d-none');
                 logoutButton.classList.remove('d-none');
                 postForm.classList.remove('d-none');
+                userInfo.classList.remove('d-none');
+                userName.textContent = user.displayName || '匿名ユーザー';
                 loadPosts();
             } else {
                 loginButton.classList.remove('d-none');
                 logoutButton.classList.add('d-none');
                 postForm.classList.add('d-none');
+                userInfo.classList.add('d-none');
+                userName.textContent = '';
                 postList.innerHTML = '<p>ログインしてください。</p>';
             }
         });
