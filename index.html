@@ -126,38 +126,36 @@
         function loadBlogPosts() {
             const blogList = document.getElementById('blog-list');
             const postsRef = ref(database, 'posts');
-
             onValue(postsRef, snapshot => {
-                allPosts = [];
-
+                console.log(snapshot.exists()); // データが存在するか確認
                 if (snapshot.exists()) {
                     snapshot.forEach(postSnapshot => {
                         const post = postSnapshot.val();
-                        post.id = postSnapshot.key; // Store the post ID for detail links
+                        console.log(post);  // 投稿データを確認
                         allPosts.push(post);
                     });
-
-                    allPosts.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
                     renderPosts();
-                    populateTags();
                 } else {
+                    console.log("No posts found");
                     blogList.innerHTML = '<p class="text-center">No posts available.</p>';
                 }
             });
+
         }
 
         function renderPosts() {
+            console.log("Rendering posts...");
             const blogList = document.getElementById('blog-list');
             blogList.innerHTML = '';
-
+        
             const startIndex = (currentPage - 1) * postsPerPage;
             const endIndex = startIndex + postsPerPage;
             const currentPosts = allPosts.slice(startIndex, endIndex);
-
+        
             currentPosts.forEach(post => {
                 const postCol = document.createElement('div');
                 postCol.className = 'col-lg-4 col-md-6 blog-card';
-
+        
                 postCol.innerHTML = `
                     <div class="card h-100">
                         <img src="${post.titleImageUrl || post.imageUrl}" class="card-img-top blog-img" alt="Blog Image">
@@ -169,10 +167,11 @@
                         </div>
                     </div>
                 `;
-
+        
                 blogList.appendChild(postCol);
             });
         }
+
 
         function populateTags() {
             const tagFilter = document.getElementById('tag-filter');
