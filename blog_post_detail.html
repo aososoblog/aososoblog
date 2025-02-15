@@ -83,6 +83,30 @@
                 <p><strong>Tags:</strong> ${post.tags || 'No tags'}</p>
             `;
         }
+
+        const params = new URLSearchParams(window.location.search);
+        const postId = params.get('id');
+        
+        // postIdが正しく取得されているかを確認
+        console.log('Post ID:', postId);
+        
+        if (postId) {
+            const postRef = ref(database, `posts/${postId}`);
+            get(postRef).then(snapshot => {
+                if (snapshot.exists()) {
+                    const post = snapshot.val();
+                    renderPostDetails(post);
+                } else {
+                    document.getElementById('blog-detail').innerHTML = '<p class="text-center">Post not found.</p>';
+                }
+            }).catch(error => {
+                console.error('Error fetching post:', error);
+                document.getElementById('blog-detail').innerHTML = '<p class="text-center text-danger">Failed to load post details.</p>';
+            });
+        } else {
+            document.getElementById('blog-detail').innerHTML = '<p class="text-center">No post selected.</p>';
+        }
+
     </script>
 
     <!-- Bootstrap JS -->
