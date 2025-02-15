@@ -74,7 +74,7 @@
   <!-- Firebase SDK -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
-    import { getDatabase, ref, set, get, remove, update, onValue } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js";
+    import { getDatabase, ref, set, get, remove, update, onValue, push } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js";
     import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
 
     // Firebase 初期化
@@ -89,118 +89,121 @@
       measurementId: "G-GEB1NXSTQ6"
     };
 
-        const app = initializeApp(firebaseConfig);
-        const database = getDatabase(app);
-        const auth = getAuth(app);
-        let editingPostId = null;
+    const app = initializeApp(firebaseConfig);
+    const database = getDatabase(app);
+    const auth = getAuth(app);
+    let editingPostId = null;
 
-        document.addEventListener("DOMContentLoaded", () => {
-          // ログイン状態の監視
-          onAuthStateChanged(auth, user => {
-            if (user) {
-              // ログインしていればブログ管理画面を表示
-              showBlogManagement();
-            } else {
-              // ログインしていなければログインフォームを表示
-              showLoginForm();
-            }
-          });
-
-          // ログインフォームの処理
-          const loginForm = document.getElementById("loginForm");
-          loginForm.addEventListener("submit", (e) => {
-            e.preventDefault();
-            const email = document.getElementById("email").value;
-            const password = document.getElementById("password").value;
-
-            signInWithEmailAndPassword(auth, email, password)
-            .then((userCredential) => {
-              // ログイン成功時
-              const user = userCredential.user;
-              alert("ログイン成功!");
-            })
-            .catch((error) => {
-              alert("ログイン失敗");
-              console.error("ログインエラー: ", error);
-            });
-          });
-
-        document.getElementById('post-button').addEventListener('click', () => {
-            const title = document.getElementById('title').value;
-            const body = document.getElementById('body').value;
-            const imageUrl = document.getElementById('image-url').value;
-            const titleImageUrl = document.getElementById('title-image-url').value;
-            const tags = document.getElementById('tags').value;
-            const timestamp = new Date().toISOString();
-
-            const postData = {
-                title,
-                body,
-                imageUrl,
-                titleImageUrl,
-                tags,
-                timestamp
-            };
-
-            const postsRef = ref(database, 'posts');
-            push(postsRef, postData).then(() => {
-                alert('投稿が成功しました！');
-                document.getElementById('post-form').reset();
-            }).catch(error => {
-                console.error('投稿エラー:', error);
-            });
-        });
-
-        function loadPosts() {
-            const postList = document.getElementById('post-list');
-            const postsRef = ref(database, 'posts');
-            onValue(postsRef, snapshot => {
-                postList.innerHTML = '';
-                snapshot.forEach(postSnapshot => {
-                    const post = postSnapshot.val();
-                    const postDiv = document.createElement('div');
-                    postDiv.classList.add('card', 'mb-3');
-                    postDiv.innerHTML = `
-                        <div class="card-body">
-                            <h5 class="card-title">${post.title}</h5>
-                            <p class="card-text">${post.body}</p>
-                            <img src="${post.imageUrl}" alt="Post Image" class="img-fluid mb-3">
-                            <p class="text-muted">投稿日時: ${new Date(post.timestamp).toLocaleString()}</p>
-                            <button class="btn btn-danger btn-sm" onclick="deletePost('${postSnapshot.key}')">削除</button>
-                        </div>
-                    `;
-                    postList.appendChild(postDiv);
-                });
-            });
-        }
-
-        window.deletePost = function(postId) {
-            if (confirm('本当に削除しますか？')) {
-                const postRef = ref(database, `posts/${postId}`);
-                remove(postRef).then(() => {
-                    alert('削除が成功しました！');
-                }).catch(error => {
-                    console.error('削除エラー:', error);
-                });
-            }
-        };
-
-        // ページロード時に投稿を読み込み
-        loadPosts();
-
-        // 管理画面の表示
-        function showBlogManagement() {
-          document.getElementById("loginFormContainer").style.display = "none";
-          document.getElementById("blogManagementContainer").style.display = "block";
-          loadPosts();
-        }
-
-        // ログインフォームの表示
-        function showLoginForm() {
-          document.getElementById("loginFormContainer").style.display = "block";
-          document.getElementById("blogManagementContainer").style.display = "none";
+    document.addEventListener("DOMContentLoaded", () => {
+      // ログイン状態の監視
+      onAuthStateChanged(auth, user => {
+        if (user) {
+          // ログインしていればブログ管理画面を表示
+          showBlogManagement();
+        } else {
+          // ログインしていなければログインフォームを表示
+          showLoginForm();
         }
       });
-    </script>
+
+      // ログインフォームの処理
+      const loginForm = document.getElementById("loginForm");
+      loginForm.addEventListener("submit", (e) => {
+        e.preventDefault();
+        const email = document.getElementById("email").value;
+        const password = document.getElementById("password").value;
+
+        signInWithEmailAndPassword(auth, email, password)
+        .then((userCredential) => {
+          // ログイン成功時
+          const user = userCredential.user;
+          alert("ログイン成功!");
+        })
+        .catch((error) => {
+          alert("ログイン失敗");
+          console.error("ログインエラー: ", error);
+        });
+      });
+
+      // 投稿ボタンの処理
+      document.getElementById('post-button').addEventListener('click', () => {
+        const title = document.getElementById('title').value;
+        const body = document.getElementById('body').value;
+        const imageUrl = document.getElementById('image-url').value;
+        const titleImageUrl = document.getElementById('title-image-url').value;
+        const tags = document.getElementById('tags').value;
+        const timestamp = new Date().toISOString();
+
+        const postData = {
+            title,
+            body,
+            imageUrl,
+            titleImageUrl,
+            tags,
+            timestamp
+        };
+
+        const postsRef = ref(database, 'posts');
+        push(postsRef, postData).then(() => {
+            alert('投稿が成功しました！');
+            document.getElementById('post-form').reset();
+        }).catch(error => {
+            console.error('投稿エラー:', error);
+        });
+      });
+
+      // 投稿一覧を読み込む関数
+      function loadPosts() {
+        const postList = document.getElementById('post-list');
+        const postsRef = ref(database, 'posts');
+        onValue(postsRef, snapshot => {
+          postList.innerHTML = '';
+          snapshot.forEach(postSnapshot => {
+            const post = postSnapshot.val();
+            const postDiv = document.createElement('div');
+            postDiv.classList.add('card', 'mb-3');
+            postDiv.innerHTML = `
+                <div class="card-body">
+                    <h5 class="card-title">${post.title}</h5>
+                    <p class="card-text">${post.body}</p>
+                    <img src="${post.imageUrl}" alt="Post Image" class="img-fluid mb-3">
+                    <p class="text-muted">投稿日時: ${new Date(post.timestamp).toLocaleString()}</p>
+                    <button class="btn btn-danger btn-sm" onclick="deletePost('${postSnapshot.key}')">削除</button>
+                </div>
+            `;
+            postList.appendChild(postDiv);
+          });
+        });
+      }
+
+      // 投稿を削除する関数
+      window.deletePost = function(postId) {
+        if (confirm('本当に削除しますか？')) {
+          const postRef = ref(database, `posts/${postId}`);
+          remove(postRef).then(() => {
+            alert('削除が成功しました！');
+          }).catch(error => {
+            console.error('削除エラー:', error);
+          });
+        }
+      };
+
+      // ページロード時に投稿を読み込み
+      loadPosts();
+
+      // 管理画面の表示
+      function showBlogManagement() {
+        document.getElementById("loginFormContainer").style.display = "none";
+        document.getElementById("blogManagementContainer").style.display = "block";
+        loadPosts();
+      }
+
+      // ログインフォームの表示
+      function showLoginForm() {
+        document.getElementById("loginFormContainer").style.display = "block";
+        document.getElementById("blogManagementContainer").style.display = "none";
+      }
+    });
+  </script>
 </body>
 </html>
