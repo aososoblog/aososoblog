@@ -1,65 +1,46 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ja">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>管理画面</title>
-    <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <style>
-        .admin-container {
-            max-width: 800px;
-            margin: 20px auto;
-        }
-        .form-control {
-            margin-bottom: 15px;
-        }
-        .admin-header {
-            margin-bottom: 30px;
-            text-align: center;
-        }
-    </style>
+    <title>ブログ投稿</title>
 </head>
 <body>
-    <div class="admin-container">
-        <h1 class="admin-header">管理画面</h1>
+    <h2>ブログ投稿</h2>
+
+    <!-- Googleログインボタン -->
+    <button id="google-signin">Googleでログイン</button>
+
+    <!-- ブログ投稿フォーム -->
+    <div id="blog-form" style="display:none;">
+        <h3>新規投稿</h3>
         <form id="post-form">
-            <div class="mb-3">
-                <label for="title" class="form-label">タイトル</label>
-                <input type="text" id="title" class="form-control" placeholder="タイトルを入力">
-            </div>
-            <div class="mb-3">
-                <label for="body" class="form-label">本文</label>
-                <textarea id="body" class="form-control" rows="4" placeholder="本文を入力"></textarea>
-            </div>
-            <div class="mb-3">
-                <label for="image-url" class="form-label">画像リンク</label>
-                <input type="url" id="image-url" class="form-control" placeholder="画像URLを入力">
-            </div>
-            <div class="mb-3">
-                <label for="title-image-url" class="form-label">タイトル画像リンク (任意)</label>
-                <input type="url" id="title-image-url" class="form-control" placeholder="タイトル画像URLを入力">
-            </div>
-            <div class="mb-3">
-                <label for="tags" class="form-label">タグ</label>
-                <input type="text" id="tags" class="form-control" placeholder="タグをカンマ区切りで入力">
-            </div>
-            <button type="button" id="post-button" class="btn btn-primary">投稿</button>
+            <label for="title">タイトル:</label>
+            <input type="text" id="title" required><br><br>
+            <label for="body">本文:</label>
+            <textarea id="body" required></textarea><br><br>
+            <label for="tags">タグ (カンマ区切り):</label>
+            <input type="text" id="tags"><br><br>
+            <label for="imageUrl">タイトル画像URL:</label>
+            <input type="text" id="imageUrl"><br><br>
+            <label for="contentImage">画像URL:</label>
+            <input type="text" id="contentImage"><br><br>
+            <button type="submit">投稿</button>
         </form>
-        <hr>
-        <h2>投稿一覧</h2>
-        <div id="post-list" class="mt-3">
-            <!-- 投稿リストがここに表示されます -->
-        </div>
     </div>
 
-    <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/9.16.0/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.16.0/firebase-database.js"></script>
+    <div id="posts-management">
+        <h3>投稿管理</h3>
+        <div id="post-list"></div>
+    </div>
 
-    <!-- 管理画面用スクリプト -->
-    <script>
-        // Firebase 初期化
+    <!-- Firebase SDKのインポート -->
+    <script type="module">
+        // Firebase SDKのモジュールをインポート
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
+        import { getAuth, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
+        import { getDatabase, ref, set, get, child, update, remove } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js";
+
         const firebaseConfig = {
           apiKey: "AIzaSyCY0gTY8HdvhH7ddYsqr7AudE3BFlIyenQ",
           authDomain: "aososo-blog.firebaseapp.com",
@@ -71,66 +52,187 @@
           measurementId: "G-GEB1NXSTQ6"
         };
 
-        const app = firebase.initializeApp(firebaseConfig);
-        const database = firebase.database(app);
+        // Firebase初期化
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const database = getDatabase(app);
 
-        document.getElementById('post-button').addEventListener('click', () => {
-            const title = document.getElementById('title').value;
-            const body = document.getElementById('body').value;
-            const imageUrl = document.getElementById('image-url').value;
-            const titleImageUrl = document.getElementById('title-image-url').value;
-            const tags = document.getElementById('tags').value;
-            const timestamp = new Date().toISOString();
+        // Googleログインの処理
+        const googleSignInButton = document.getElementById("google-signin");
+        const blogForm = document.getElementById("blog-form");
 
-            const postData = {
-                title,
-                body,
-                imageUrl,
-                titleImageUrl,
-                tags,
-                timestamp
-            };
-
-            database.ref('posts').push(postData).then(() => {
-                alert('投稿が成功しました！');
-                document.getElementById('post-form').reset();
-                loadPosts();
-            });
+        googleSignInButton.addEventListener("click", () => {
+            const provider = new GoogleAuthProvider();
+            signInWithPopup(auth, provider)
+                .then((result) => {
+                    const user = result.user;
+                    console.log("ログインユーザー:", user.displayName);
+                    blogForm.style.display = 'block'; // ログイン後に投稿フォームを表示
+                })
+                .catch((error) => {
+                    console.error("ログインエラー:", error);
+                });
         });
 
+        // 投稿フォームの処理
+        const postForm = document.getElementById("post-form");
+        postForm.addEventListener("submit", (e) => {
+            e.preventDefault();
+
+            const title = document.getElementById("title").value;
+            const body = document.getElementById("body").value;
+            const tags = document.getElementById("tags").value;
+            const imageUrl = document.getElementById("imageUrl").value;
+            const contentImage = document.getElementById("contentImage").value;
+            const postId = ref(database, 'posts').push().key; // 英数字のID生成
+            const currentDate = new Date().toISOString();
+
+            const postData = {
+                title: title,
+                body: body,
+                tags: tags,
+                imageUrl: imageUrl,
+                contentImage: contentImage,
+                timestamp: currentDate
+            };
+
+            const updates = {};
+            updates['/posts/' + postId] = postData;
+
+            update(ref(database), updates)
+                .then(() => {
+                    alert("投稿しました！");
+                    loadPosts(); // 投稿後に投稿を表示
+                })
+                .catch((error) => {
+                    console.error("投稿エラー:", error);
+                });
+        });
+
+        // 投稿を管理画面に表示
         function loadPosts() {
-            database.ref('posts').orderByChild('timestamp').once('value', snapshot => {
-                const postList = document.getElementById('post-list');
-                postList.innerHTML = '';
-                snapshot.forEach(postSnapshot => {
-                    const post = postSnapshot.val();
-                    const postDiv = document.createElement('div');
-                    postDiv.classList.add('card', 'mb-3');
-                    postDiv.innerHTML = `
-                        <div class="card-body">
-                            <h5 class="card-title">${post.title}</h5>
-                            <p class="card-text">${post.body}</p>
-                            <img src="${post.imageUrl}" alt="Post Image" class="img-fluid mb-3">
-                            <p class="text-muted">投稿日時: ${new Date(post.timestamp).toLocaleString()}</p>
-                            <button class="btn btn-danger btn-sm" onclick="deletePost('${postSnapshot.key}')">削除</button>
-                        </div>
+            const postList = document.getElementById("post-list");
+            postList.innerHTML = ''; // 既存の投稿をクリア
+
+            get(ref(database, "/posts")).then((snapshot) => {
+                snapshot.forEach((childSnapshot) => {
+                    const post = childSnapshot.val();
+                    const postId = childSnapshot.key;
+
+                    const postElement = document.createElement("div");
+                    postElement.innerHTML = `
+                        <h4>${post.title}</h4>
+                        <img src="${post.imageUrl}" alt="${post.title}" width="100"><br>
+                        <button onclick="editPost('${postId}')">編集</button>
+                        <button onclick="deletePost('${postId}')">削除</button>
                     `;
-                    postList.appendChild(postDiv);
+                    postList.appendChild(postElement);
                 });
             });
         }
 
+        // 投稿削除
         function deletePost(postId) {
-            if (confirm('本当に削除しますか？')) {
-                database.ref('posts/' + postId).remove().then(() => {
-                    alert('削除が成功しました！');
-                    loadPosts();
-                });
+            if (confirm("本当に削除しますか？")) {
+                remove(ref(database, "/posts/" + postId))
+                    .then(() => {
+                        loadPosts(); // 削除後に再読み込み
+                    })
+                    .catch((error) => {
+                        console.error("削除エラー:", error);
+                    });
             }
         }
 
-        // ページロード時に投稿を読み込み
-        loadPosts();
+        // 投稿編集
+        function editPost(postId) {
+            const postRef = ref(database, "/posts/" + postId);
+            get(postRef).then((snapshot) => {
+                const post = snapshot.val();
+
+                // フォームに既存の投稿データをセット
+                document.getElementById("title").value = post.title;
+                document.getElementById("body").value = post.body;
+                document.getElementById("tags").value = post.tags;
+                document.getElementById("imageUrl").value = post.imageUrl;
+                document.getElementById("contentImage").value = post.contentImage;
+
+                // 投稿ボタンを「更新」に変更
+                const submitButton = document.querySelector("button[type='submit']");
+                submitButton.textContent = "更新";
+
+                // 投稿ボタンがクリックされたときの処理を更新に変更
+                postForm.onsubmit = (e) => {
+                    e.preventDefault();
+
+                    const updatedTitle = document.getElementById("title").value;
+                    const updatedBody = document.getElementById("body").value;
+                    const updatedTags = document.getElementById("tags").value;
+                    const updatedImageUrl = document.getElementById("imageUrl").value;
+                    const updatedContentImage = document.getElementById("contentImage").value;
+                    const updatedPostData = {
+                        title: updatedTitle,
+                        body: updatedBody,
+                        tags: updatedTags,
+                        imageUrl: updatedImageUrl,
+                        contentImage: updatedContentImage,
+                        timestamp: new Date().toISOString()
+                    };
+
+                    update(postRef, updatedPostData)
+                        .then(() => {
+                            alert("投稿が更新されました！");
+                            loadPosts(); // 投稿後に投稿を表示
+                        })
+                        .catch((error) => {
+                            console.error("更新エラー:", error);
+                        });
+
+                    // 投稿ボタンを元に戻す
+                    submitButton.textContent = "投稿";
+                    postForm.onsubmit = postFormSubmit; // 元の投稿処理に戻す
+                };
+            });
+        }
+
+        // 投稿フォームの元々の処理
+        function postFormSubmit(e) {
+            e.preventDefault();
+
+            const title = document.getElementById("title").value;
+            const body = document.getElementById("body").value;
+            const tags = document.getElementById("tags").value;
+            const imageUrl = document.getElementById("imageUrl").value;
+            const contentImage = document.getElementById("contentImage").value;
+            const postId = ref(database, 'posts').push().key; // 英数字のID生成
+            const currentDate = new Date().toISOString();
+
+            const postData = {
+                title: title,
+                body: body,
+                tags: tags,
+                imageUrl: imageUrl,
+                contentImage: contentImage,
+                timestamp: currentDate
+            };
+
+            const updates = {};
+            updates['/posts/' + postId] = postData;
+
+            update(ref(database), updates)
+                .then(() => {
+                    alert("投稿しました！");
+                    loadPosts(); // 投稿後に投稿を表示
+                })
+                .catch((error) => {
+                    console.error("投稿エラー:", error);
+                });
+        }
+
+        // ページ読み込み時に投稿を表示
+        window.onload = function() {
+            loadPosts();
+        };
     </script>
 </body>
 </html>
